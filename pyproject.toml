@@ -1,0 +1,27 @@
+[project]
+name = "frontier-ml-stack"
+version = "0.1.0"
+description = "End-to-end ML stack: data -> training -> eval -> inference"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "ruff>=0.6.0",
+  "pytest>=8.0.0",
+  "pytest-cov>=5.0.0",
+  "pre-commit>=3.7.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "I", "B", "UP"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

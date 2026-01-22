@@ -18,18 +18,20 @@ pytest
 ```
 
 Repository layout
-	-	src/frontier_ml_stack/ — shared Python package (utilities used across subsystems)
-	-	docs/ — subsystem documentation
-	-	configs/ — run configurations (YAML) for pipelines
-	-	artifacts/ — local build outputs (ignored by git)
+
+-	src/frontier_ml_stack/ — shared Python package (utilities used across subsystems)
+-	docs/ — subsystem documentation
+-	configs/ — run configurations (YAML) for pipelines
+-	artifacts/ — local build outputs (ignored by git)
 
 Documentation
 
 Start here: docs/index.md
 
 Subsystem overviews:
-	-	docs/data/overview.md
-	-	docs/training/overview.md
-	-	docs/eval/overview.md
-	-	docs/inference/overview.md
+
+-	docs/data/overview.md
+-	docs/training/overview.md
+-	docs/eval/overview.md
+-	docs/inference/overview.md
     

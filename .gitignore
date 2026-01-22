@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+
+# OS
+.DS_Store
+
+# Artifacts (keep folder, ignore contents)
+artifacts/datasets/*
+artifacts/runs/*
+artifacts/reports/*
+!artifacts/datasets/.gitkeep
+!artifacts/runs/.gitkeep
+!artifacts/reports/.gitkeep
+
+# Editor
+.vscode/
+.idea/

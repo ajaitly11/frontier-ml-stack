@@ -3,7 +3,11 @@ name = "frontier-ml-stack"
 version = "0.1.0"
 description = "End-to-end ML stack: data -> training -> eval -> inference"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+  "typer>=0.12.0",
+  "rich>=13.7.0",
+  "pydantic>=2.7.0",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -16,6 +20,8 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
 ignore = []
 

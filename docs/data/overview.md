@@ -27,3 +27,20 @@ Design notes
 - Build IDs are deterministic: derived from input file hashes + key parameters.
 - Invalid input rows are skipped and counted in the manifest.
 - The canonical schema lives in src/frontier_ml_stack/data/schema.py.
+
+## Build (transforms)
+
+Transform an existing canonical `records.jsonl`:
+
+```bash
+  python -m frontier_ml_stack.cli data build \
+    --dataset-name toyset_clean \
+    --input-records artifacts/datasets/toyset/<build_id>/records.jsonl \
+    --min-chars 5
+```
+Outputs:
+-	records.jsonl — transformed records
+-	transform_log.jsonl — per-record keep/drop decisions
+-	manifest.json — input hash + transform config + counts
+
+---

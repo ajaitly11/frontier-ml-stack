@@ -13,7 +13,7 @@ def test_build_from_records_writes_outputs(tmp_path: Path) -> None:
     input_records = tmp_path / "toy_canonical_records.jsonl"
 
     # Create a minimal canonical records file for test
-    
+
     input_records.write_text(
         "\n".join(
             [

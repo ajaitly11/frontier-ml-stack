@@ -44,3 +44,12 @@ Outputs:
 -	manifest.json — input hash + transform config + counts
 
 ---
+
+### Quality + Dedup options
+
+`data build` supports lightweight quality filtering and deduplication:
+
+- `--min-quality 0.8` drops low-quality samples (heuristic score 0..1)
+- `--dedup-exact/--no-dedup-exact` removes exact duplicates after normalization
+- `--dedup-near/--no-dedup-near` removes near-duplicates using SimHash
+- `--near-threshold 8` controls near-duplicate sensitivity (lower = stricter)

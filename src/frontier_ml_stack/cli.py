@@ -54,12 +54,26 @@ def data_build(
     lowercase: bool = typer.Option(False, help="Lowercase all text"),
     min_chars: int = typer.Option(1, help="Minimum character length after normalization"),
     max_chars: int = typer.Option(10_000, help="Maximum character length after normalization"),
+    min_quality: float = typer.Option(
+        0.0, help="Drop samples with quality score below this threshold (0..1)"
+    ),
+    dedup_exact: bool = typer.Option(True, help="Enable exact deduplication"),
+    dedup_near: bool = typer.Option(False, help="Enable near-duplicate deduplication (SimHash)"),
+    near_threshold: int = typer.Option(8, help="Max Hamming distance for near-duplicate detection"),
 ) -> None:
     """
     Build a transformed dataset from an existing records.jsonl.
     Writes records.jsonl + transform_log.jsonl + manifest.json.
     """
-    cfg = TransformConfig(lowercase=lowercase, min_chars=min_chars, max_chars=max_chars)
+    cfg = TransformConfig(
+        lowercase=lowercase,
+        min_chars=min_chars,
+        max_chars=max_chars,
+        min_quality=min_quality,
+        dedup_exact=dedup_exact,
+        dedup_near=dedup_near,
+        near_threshold=near_threshold,
+    )
     result = build_from_records(
         dataset_name=dataset_name,
         input_records_path=input_records,

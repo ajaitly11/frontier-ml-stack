@@ -10,6 +10,10 @@ class TransformConfig:
     lowercase: bool = False
     min_chars: int = 1
     max_chars: int = 10_000
+    min_quality: float = 0.0
+    dedup_exact: bool = True
+    dedup_near: bool = False
+    near_threshold: int = 8
 
 
 @dataclass(frozen=True)

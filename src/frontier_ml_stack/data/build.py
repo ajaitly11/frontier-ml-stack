@@ -5,8 +5,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from frontier_ml_stack.data.dedup.simhash import hamming_distance64, simhash64
 from frontier_ml_stack.data.hashing import sha256_file, sha256_text
 from frontier_ml_stack.data.manifest import new_manifest
+from frontier_ml_stack.data.quality import quality_score
 from frontier_ml_stack.data.schema import TextRecord
 from frontier_ml_stack.data.transforms.pipeline import TransformConfig, transform_text
 
@@ -66,28 +68,69 @@ def build_from_records(
     kept = 0
     dropped = 0
 
+    seen_exact: set[str] = set()
+    kept_simhashes: list[int] = []
+
     with (
         records_path.open("w", encoding="utf-8") as out_f,
         transform_log_path.open("w", encoding="utf-8") as log_f,
     ):
         for r in _iter_records_jsonl(input_records_path):
             total_in += 1
+
             decision = transform_text(r.text, cfg)
+            log_event: dict[str, Any] = {"id": r.id, "kept": False, "reason": decision.reason}
 
-            log_event: dict[str, Any] = {
-                "id": r.id,
-                "kept": decision.kept,
-                "reason": decision.reason,
-            }
-
-            if decision.kept:
-                kept += 1
-                out_record = TextRecord(id=r.id, text=decision.text_after or "", source=r.source)
-                out_f.write(out_record.model_dump_json() + "\n")
-                log_event["text_after"] = decision.text_after
-            else:
+            if not decision.kept or not decision.text_after:
                 dropped += 1
+                log_f.write(json.dumps(log_event, ensure_ascii=False) + "\n")
+                continue
 
+            cleaned = decision.text_after
+
+            # Quality scoring
+            q = quality_score(cleaned)
+            log_event["quality_score"] = q.score
+            log_event["quality_flags"] = q.flags
+
+            if q.score < cfg.min_quality:
+                dropped += 1
+                log_event["reason"] = "low_quality"
+                log_f.write(json.dumps(log_event, ensure_ascii=False) + "\n")
+                continue
+
+            # Exact dedup
+            if cfg.dedup_exact:
+                key = sha256_text(cleaned)
+                if key in seen_exact:
+                    dropped += 1
+                    log_event["reason"] = "dedup_exact"
+                    log_f.write(json.dumps(log_event, ensure_ascii=False) + "\n")
+                    continue
+                seen_exact.add(key)
+
+            # Near-duplicate dedup (SimHash + linear scan, fine for small/medium demo datasets)
+            if cfg.dedup_near:
+                sh = simhash64(cleaned)
+                log_event["simhash64"] = sh
+                is_near_dup = any(
+                    hamming_distance64(sh, prev) <= cfg.near_threshold for prev in kept_simhashes
+                )
+                if is_near_dup:
+                    dropped += 1
+                    log_event["reason"] = "dedup_near"
+                    log_f.write(json.dumps(log_event, ensure_ascii=False) + "\n")
+                    continue
+                kept_simhashes.append(sh)
+
+            # Keep record
+            kept += 1
+            out_record = TextRecord(id=r.id, text=cleaned, source=r.source)
+            out_f.write(out_record.model_dump_json() + "\n")
+
+            log_event["kept"] = True
+            log_event["reason"] = "kept"
+            log_event["text_after"] = cleaned
             log_f.write(json.dumps(log_event, ensure_ascii=False) + "\n")
 
     manifest = new_manifest(

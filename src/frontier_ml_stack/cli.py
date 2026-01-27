@@ -9,10 +9,14 @@ from rich import print
 from frontier_ml_stack.data.build import build_from_records
 from frontier_ml_stack.data.ingest import ingest_jsonl
 from frontier_ml_stack.data.transforms.pipeline import TransformConfig
+from frontier_ml_stack.training.config import SFTConfig
+from frontier_ml_stack.training.sft import run_sft
 
 app = typer.Typer(help="frontier-ml-stack CLI")
 data_app = typer.Typer(help="Data pipeline commands")
 app.add_typer(data_app, name="data")
+training_app = typer.Typer(help="Training commands")
+app.add_typer(training_app, name="training")
 
 
 @data_app.command("ingest")
@@ -87,6 +91,29 @@ def data_build(
     print(f"Transform log:   {result.transform_log_path}")
     print(f"Manifest:        {result.manifest_path}")
     print(f"Counts:          in={result.total_in} kept={result.kept} dropped={result.dropped}")
+
+
+@training_app.command("sft")
+def training_sft(
+    run_name: str = typer.Option(..., help="Run name (used for artifacts/runs/<run_name>)"),
+    model_name: str = typer.Option("sshleifer/tiny-gpt2", help="HF model name"),
+    train_records: Path = typer.Option(
+        ..., exists=True, readable=True, help="Path to records.jsonl"
+    ),
+    max_steps: int = typer.Option(20, help="Max training steps (tiny runs on CPU)"),
+    max_seq_length: int = typer.Option(256, help="Max sequence length"),
+) -> None:
+    cfg = SFTConfig(
+        run_name=run_name,
+        model_name=model_name,
+        train_records=str(train_records),
+        max_steps=max_steps,
+        max_seq_length=max_seq_length,
+    )
+    run_dir = run_sft(cfg)
+    print("[bold green]SFT complete[/bold green]")
+    print(f"Run dir: {run_dir}")
+    print(f"Metrics: {run_dir / 'metrics.json'}")
 
 
 def main() -> None:

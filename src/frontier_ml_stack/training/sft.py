@@ -58,7 +58,6 @@ def run_sft(cfg: SFTConfig) -> Path:
         seed=cfg.seed,
         fp16=False,
         bf16=False,
-        no_cuda=True,
     )
 
     trainer = Trainer(

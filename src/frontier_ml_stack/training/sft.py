@@ -13,6 +13,12 @@ from transformers import (
 
 from frontier_ml_stack.training.config import SFTConfig
 from frontier_ml_stack.training.data import load_records_as_dataset
+from frontier_ml_stack.training.lora import (
+    apply_lora,
+    guess_target_modules,
+    parse_target_modules,
+    trainable_params_summary,
+)
 from frontier_ml_stack.training.run_artifacts import prepare_run_dir, write_config, write_json
 
 
@@ -40,6 +46,30 @@ def run_sft(cfg: SFTConfig) -> Path:
         tokenizer.pad_token = tokenizer.eos_token
 
     model = AutoModelForCausalLM.from_pretrained(cfg.model_name)
+    lora_info = {"use_lora": cfg.use_lora}
+
+    if cfg.use_lora:
+        override = parse_target_modules(cfg.lora_target_modules)
+        targets = override or guess_target_modules(model)
+        lora_info["target_modules"] = targets
+        lora_info["override"] = bool(override)
+
+        model = apply_lora(
+            model,
+            r=cfg.lora_r,
+            alpha=cfg.lora_alpha,
+            dropout=cfg.lora_dropout,
+            target_modules=targets,
+            bias=cfg.lora_bias,
+        )
+        # Helpful: log trainable params
+        lora_info["params"] = {
+            "r": cfg.lora_r,
+            "alpha": cfg.lora_alpha,
+            "dropout": cfg.lora_dropout,
+            "bias": cfg.lora_bias,
+        }
+        lora_info["trainable_summary"] = trainable_params_summary(model)
     model.train()
 
     ds = load_records_as_dataset(records_path)
@@ -73,11 +103,31 @@ def run_sft(cfg: SFTConfig) -> Path:
     metrics["model_name"] = cfg.model_name
     metrics["torch_version"] = torch.__version__
     write_json(run_dir / "metrics.json", metrics)
+    write_json(run_dir / "lora.json", lora_info)
 
     # Save final model (small models only; in bigger runs you will save checkpoints)
     final_dir = run_dir / "final_model"
     final_dir.mkdir(parents=True, exist_ok=True)
     trainer.save_model(str(final_dir))
     tokenizer.save_pretrained(str(final_dir))
+
+    if cfg.use_lora:
+        # Save adapter weights only
+        adapter_dir = run_dir / "lora_adapter"
+        adapter_dir.mkdir(parents=True, exist_ok=True)
+        model.save_pretrained(str(adapter_dir))
+
+        # Optionally save merged model for downstream eval/inference
+        if cfg.save_merged and hasattr(model, "merge_and_unload"):
+            merged = model.merge_and_unload()
+            merged_dir = run_dir / "final_model_merged"
+            merged_dir.mkdir(parents=True, exist_ok=True)
+            merged.save_pretrained(str(merged_dir))
+            tokenizer.save_pretrained(str(merged_dir))
+    else:
+        # Save full fine-tuned model
+        final_dir = run_dir / "final_model"
+        final_dir.mkdir(parents=True, exist_ok=True)
+        trainer.save_model(str(final_dir))
 
     return run_dir

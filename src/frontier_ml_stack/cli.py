@@ -9,14 +9,21 @@ from rich import print
 from frontier_ml_stack.data.build import build_from_records
 from frontier_ml_stack.data.ingest import ingest_jsonl
 from frontier_ml_stack.data.transforms.pipeline import TransformConfig
+from frontier_ml_stack.eval.config import BehaviorEvalConfig, EvalConfig, LossEvalConfig
+from frontier_ml_stack.eval.runner import run_eval
 from frontier_ml_stack.training.config import SFTConfig
 from frontier_ml_stack.training.sft import run_sft
 
 app = typer.Typer(help="frontier-ml-stack CLI")
+
 data_app = typer.Typer(help="Data pipeline commands")
 app.add_typer(data_app, name="data")
+
 training_app = typer.Typer(help="Training commands")
 app.add_typer(training_app, name="training")
+
+eval_app = typer.Typer(help="Evaluation commands")
+app.add_typer(eval_app, name="eval")
 
 
 @data_app.command("ingest")
@@ -126,6 +133,34 @@ def training_sft(
     print("[bold green]SFT complete[/bold green]")
     print(f"Run dir: {run_dir}")
     print(f"Metrics: {run_dir / 'metrics.json'}")
+
+
+@eval_app.command("run")
+def eval_run(
+    eval_name: str = typer.Option(..., help="Eval run name (artifacts/reports/<eval_name>)"),
+    model_path: str = typer.Option(..., help="HF model name or local model dir"),
+    eval_records: Path = typer.Option(
+        ..., exists=True, readable=True, help="Path to records.jsonl"
+    ),
+    max_eval_samples: int = typer.Option(64, help="Max eval samples for loss eval"),
+    max_seq_length: int = typer.Option(256, help="Max sequence length for loss eval"),
+    max_prompts: int = typer.Option(12, help="Max behavior prompts"),
+    max_new_tokens: int = typer.Option(64, help="Max new tokens to generate"),
+    temperature: float = typer.Option(0.0, help="Generation temperature; 0 for deterministic"),
+) -> None:
+    cfg = EvalConfig(
+        eval_name=eval_name,
+        model_path=model_path,
+        eval_records=str(eval_records),
+        loss=LossEvalConfig(max_eval_samples=max_eval_samples, max_seq_length=max_seq_length),
+        behavior=BehaviorEvalConfig(
+            max_prompts=max_prompts, max_new_tokens=max_new_tokens, temperature=temperature
+        ),
+    )
+    out_dir = run_eval(cfg)
+    print("[bold green]Eval complete[/bold green]")
+    print(f"Report:  {out_dir / 'report.md'}")
+    print(f"Metrics: {out_dir / 'metrics.json'}")
 
 
 def main() -> None:

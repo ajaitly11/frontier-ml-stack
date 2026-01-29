@@ -36,3 +36,20 @@ def test_trainable_params_summary_keys() -> None:
     assert "total_params" in s
     assert "trainable_params" in s
     assert "trainable_pct" in s
+
+
+def test_guess_target_modules_detects_gpt2_conv1d_like() -> None:
+    class Conv1D(torch.nn.Module):
+        # mimic class name used by HF without importing transformers internals
+        pass
+
+    class DummyGPT2(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.c_attn = Conv1D()
+            self.c_proj = Conv1D()
+
+    m = DummyGPT2()
+    targets = guess_target_modules(m)
+    assert "c_attn" in targets
+    assert "c_proj" in targets

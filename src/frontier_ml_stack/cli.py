@@ -102,6 +102,12 @@ def training_sft(
     ),
     max_steps: int = typer.Option(20, help="Max training steps (tiny runs on CPU)"),
     max_seq_length: int = typer.Option(256, help="Max sequence length"),
+    lora: bool = typer.Option(False, help="Enable LoRA adapter training (PEFT)"),
+    lora_r: int = typer.Option(8, help="LoRA rank"),
+    lora_alpha: int = typer.Option(16, help="LoRA alpha"),
+    lora_dropout: float = typer.Option(0.05, help="LoRA dropout"),
+    lora_target_modules: str = typer.Option("", help="Comma-separated target modules override"),
+    save_merged: bool = typer.Option(True, help="If LoRA, save merged full model too"),
 ) -> None:
     cfg = SFTConfig(
         run_name=run_name,
@@ -109,6 +115,12 @@ def training_sft(
         train_records=str(train_records),
         max_steps=max_steps,
         max_seq_length=max_seq_length,
+        use_lora=lora,
+        lora_r=lora_r,
+        lora_alpha=lora_alpha,
+        lora_dropout=lora_dropout,
+        lora_target_modules=lora_target_modules,
+        save_merged=save_merged,
     )
     run_dir = run_sft(cfg)
     print("[bold green]SFT complete[/bold green]")

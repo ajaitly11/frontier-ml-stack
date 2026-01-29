@@ -44,7 +44,7 @@ def eval_loss(
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    model = AutoModelForCausalLM.from_pretrained(model_path)
+    model = AutoModelForCausalLM.from_pretrained(model_path, use_safetensors=False)
     model.eval()
 
     ds = load_records_as_dataset(records_path)

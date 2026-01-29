@@ -60,7 +60,7 @@ def eval_behavior(
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    model = AutoModelForCausalLM.from_pretrained(model_path)
+    model = AutoModelForCausalLM.from_pretrained(model_path, use_safetensors=False)
     model.eval()
 
     prompts = PROMPTS[:max_prompts]

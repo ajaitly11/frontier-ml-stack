@@ -11,6 +11,8 @@ from frontier_ml_stack.data.ingest import ingest_jsonl
 from frontier_ml_stack.data.transforms.pipeline import TransformConfig
 from frontier_ml_stack.eval.config import BehaviorEvalConfig, EvalConfig, LossEvalConfig
 from frontier_ml_stack.eval.runner import run_eval
+from frontier_ml_stack.inference.bench import run_benchmark
+from frontier_ml_stack.inference.server import create_app
 from frontier_ml_stack.training.config import SFTConfig
 from frontier_ml_stack.training.sft import run_sft
 
@@ -24,6 +26,9 @@ app.add_typer(training_app, name="training")
 
 eval_app = typer.Typer(help="Evaluation commands")
 app.add_typer(eval_app, name="eval")
+
+inference_app = typer.Typer(help="Inference commands")
+app.add_typer(inference_app, name="inference")
 
 
 @data_app.command("ingest")
@@ -161,6 +166,37 @@ def eval_run(
     print("[bold green]Eval complete[/bold green]")
     print(f"Report:  {out_dir / 'report.md'}")
     print(f"Metrics: {out_dir / 'metrics.json'}")
+
+
+@inference_app.command("serve")
+def inference_serve(
+    model_path: str = typer.Option(..., help="HF model name or local model dir"),
+    host: str = typer.Option("127.0.0.1", help="Host"),
+    port: int = typer.Option(8000, help="Port"),
+) -> None:
+    import uvicorn
+
+    app_ = create_app(model_path)
+    uvicorn.run(app_, host=host, port=port, log_level="info")
+
+
+@inference_app.command("benchmark")
+def inference_benchmark(
+    bench_name: str = typer.Option(..., help="Benchmark name (artifacts/benchmarks/<bench_name>)"),
+    base_url: str = typer.Option("http://127.0.0.1:8000", help="Server base URL"),
+    max_new_tokens: int = typer.Option(64, help="Max new tokens"),
+    temperature: float = typer.Option(0.0, help="Temperature"),
+    top_p: float = typer.Option(1.0, help="Top-p"),
+) -> None:
+    out_dir = run_benchmark(
+        bench_name=bench_name,
+        base_url=base_url,
+        max_new_tokens=max_new_tokens,
+        temperature=temperature,
+        top_p=top_p,
+    )
+    print("[bold green]Benchmark complete[/bold green]")
+    print(f"Results: {out_dir / 'results.json'}")
 
 
 def main() -> None:
